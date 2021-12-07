@@ -1,0 +1,13 @@
+#The sizes of the random inputs to use in monkey, a list of space-separated numbers
+INPUT_SIZES=200 500
+
+#The directory to search for apks, all apks in this directory will be tested
+SOURCE_DIRECTORY_MALWARE=./apks/malware
+SOURCE_DIRECTORY_SANE=./apks/benign
+
+#The directory that will store the cured apks, it should be empty when the script is first started, otherwise the script might fail and data will be LOST
+#It will be created if non-existent
+CURATED_APK_DIRECTORY=./curatedApks
+
+#The directory where to dump the log files and the database 
+DESTINATION_DIRECTORY=./logs
