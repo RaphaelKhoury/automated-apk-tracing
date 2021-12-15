@@ -1,22 +1,65 @@
 #Intercepts sigint and sigterm to kill the container on the way
 trap exitScript INT TERM
 
+#Prints with color
+# args :
+#  - option -n
+#  - 1 color (r,b,g,y)
+#  - 2 text to print
+function echoColor()
+{
+    red="\e[0;91m"
+    blue="\e[0;94m"
+    green="\e[0;92m"
+    yellow="\e[0;33m"
+    reset="\e[0m"
+
+    OPTIONFLAG=""
+    
+    case $1 in
+        -n)
+            OPTIONFLAG=-n
+            shift
+        ;;
+    esac
+
+    case $1 in
+        r)
+            echo $OPTIONFLAG -e $red$2$reset
+        ;;
+        b)
+            echo $OPTIONFLAG -e $blue$2$reset
+        ;;
+        g)
+            echo $OPTIONFLAG -e $green$2$reset
+        ;;
+        y)
+            echo $OPTIONFLAG -e $yellow$2$reset
+        ;;
+    esac
+
+}
+
 #Input variables for the script, these remain constant through the script execution
 INPUT_SIZES=$(grep -oP '(?<=INPUT_SIZES=).*' config.txt ) 
-echo "Tests will be done on input sizes $INPUT_SIZES"
+echo -n "Tests will be done on input sizes : " 
+echoColor b $INPUT_SIZES 
 
 SOURCE_DIRECTORY_MALWARE=$(grep -oP '(?<=SOURCE_DIRECTORY_MALWARE=).*' config.txt ) 
-echo "Source directory for malware apks : $SOURCE_DIRECTORY_MALWARE"
+echo -n "Source directory for malware apks : "
+echoColor b $SOURCE_DIRECTORY_MALWARE 
 
 SOURCE_DIRECTORY_SANE=$(grep -oP '(?<=SOURCE_DIRECTORY_SANE=).*' config.txt ) 
-echo "Source directory for sane apks : $SOURCE_DIRECTORY_SANE"
+echo -n "Source directory for sane apks : "
+echoColor b $SOURCE_DIRECTORY_SANE 
 
 CURATED_APK_DIRECTORY=$(grep -oP '(?<=CURATED_APK_DIRECTORY=).*' config.txt ) 
-echo "Destination directory for curated apks : $CURATED_APK_DIRECTORY"
+echo -n "Destination directory for curated apks : "
+echoColor b $CURATED_APK_DIRECTORY 
 
 DESTINATION_DIRECTORY=$(grep -oP '(?<=DESTINATION_DIRECTORY=).*' config.txt ) 
-echo "Destination directory for traces : $DESTINATION_DIRECTORY"
-
+echo -n "Destination directory for traces : "
+echoColor b $DESTINATION_DIRECTORY 
 
 #main function body
 function mainBody()
@@ -32,6 +75,9 @@ function mainBody()
 #this will fill CURATED_APK_DIRECTORY
 function prepareData()
 {
+    echo
+    echo "Preparing data ..."
+    echo
     createDatabaseIfNeeded
     if [ ! -d $CURATED_APK_DIRECTORY ]
     then
@@ -40,6 +86,8 @@ function prepareData()
     for LOCALDIR in $SOURCE_DIRECTORY_MALWARE/*/ $SOURCE_DIRECTORY_SANE/*/
     do
         [ -d "$LOCALDIR" ] || break #these guards are important in case folders are empty or don't exist
+        echo -n "Preparing data in folder "
+        echoColor -n b "$LOCALDIR ... "
         for FILE in $LOCALDIR*
         do
             [ -f "$FILE" ] || break
@@ -71,7 +119,11 @@ function prepareData()
                 echo "$FILE;$HASH;$SOURCENAME;" >> $DESTINATION_DIRECTORY/fileCorrespondance.csv
             fi
         done
+        echoColor g "done"
     done
+    echo
+    echo -n "... preparing data "
+    echoColor g "done"
 }
 
 #extracts the data to fill packageInfo.csv
@@ -134,15 +186,19 @@ function extractAPKDataIntoDB()
 #starts the tracing proper
 function processData()
 {
+    echo "Testing apks ... "
+    echo
     for APK in $CURATED_APK_DIRECTORY/*.apk 
     do
         [ -f "$APK" ] || break
-        echo "##### Starting tests for apk : $APK"
+        echo -n "Starting tests for apk : "
+        echoColor b "$APK ..."
         for INPUTNUMBER in $INPUT_SIZES 
         do
+            echo -n "Test $INPUTNUMBER ... "
             if checkFiles "$APK" $INPUTNUMBER
             then
-                echo "Already done, skipping ..."
+                echoColor y skipped
                 continue
             fi
 
@@ -152,11 +208,15 @@ function processData()
 
             addToDatabase "$APK" $INPUTNUMBER
 
-            docker stop android-container
-            docker rm android-container
+            docker stop android-container > /dev/null
+            docker rm android-container > /dev/null
+
         done
-        echo "##### Tests for apk $APK done"
     done
+    echo
+    echo -n "... testing "
+    echoColor g "done"
+    echo
 }
 
 #proper exit function 
@@ -176,6 +236,7 @@ function createDatabaseIfNeeded()
 {
     if [ ! -e "$DESTINATION_DIRECTORY/packageInfo.csv" ] 
     then 
+        echoColor -n y "Warning : preparing data - no existing database detected, creating ..."
         touch $DESTINATION_DIRECTORY/fileCorrespondance.csv
         touch $DESTINATION_DIRECTORY/packageInfo.csv
         touch $DESTINATION_DIRECTORY/logsCorrespondance.csv
@@ -189,27 +250,29 @@ function createDatabaseIfNeeded()
             echo -n "$line;" >> $DESTINATION_DIRECTORY/packageInfo.csv
         done < features.txt
         echo "" >> $DESTINATION_DIRECTORY/packageInfo.csv
+        echoColor g " done"
     fi 
 }
 
 #terminates and deletes the container if applicable
 function killContainer()
 {
+    echo
     DOCKSTATUS=$(docker ps | grep "android-container")
     if [ -z "$DOCKSTATUS" ]
     then
         DOCKSTATUS=$(docker ps -a | grep "android-container")
         if [ ! -z "$DOCKSTATUS" ]
         then
-            echo "Container remnant detecting, erasing ..."
+            echoColor -n y "Container remnant detecting, erasing ... "
             docker rm android-container
-            echo "Erased"
+            echo g "erased"
         fi
     else
-        echo "Running container detected, shutting it down and erasing ..."
-        docker stop android-container
-        docker rm android-container
-        echo "Erased"
+        echoColor -n y "Running container detected, shutting it down and erasing ... "
+        docker stop android-container > /dev/null
+        docker rm android-container > /dev/null
+        echoColor g "erased"
     fi
 }
 
@@ -245,27 +308,24 @@ function createContainer()
 {
     killContainer
     
-    echo "Starting container ..."
     docker run -d \
         -e ADBKEY="$(cat ~/.android/adbkey)" \
         --device /dev/kvm \
         --publish 8554:8554/tcp \
         --publish 5555:5555/tcp  \
         --name android-container \
-        us-docker.pkg.dev/android-emulator-268719/images/30-google-x64:30.1.2
-    echo "Container started"
+        us-docker.pkg.dev/android-emulator-268719/images/30-google-x64:30.1.2 > /dev/null
     
-    echo "Waiting and connecting..."
     CONTAINERIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' android-container)
     sleep 5
-    adb connect $CONTAINERIP:5555 
-    adb -s $CONTAINERIP:5555 wait-for-device
+    adb connect $CONTAINERIP:5555 > /dev/null
+    adb -s $CONTAINERIP:5555 wait-for-device > /dev/null
 
     while [ "$(adb -s $CONTAINERIP:5555 shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do
-        echo "Still waiting for boot, retrying in 10 sc.."
+        echoColor -n y "Still waiting for boot"
+        echo  " retrying in 10 sc ... "
         sleep 10
     done
-    echo "Connected to emulator"
 }
 
 #Traces the apk proper
@@ -278,12 +338,12 @@ function traceAPK()
     LOCALHASH=$(basename $1 .apk)
     PACKNAME=$(aapt dump badging "$1" | grep -Po package:\ "name='\K.*?(?=')")
 
-    echo "Installing apk via adb ..."
-    adb -s $3:5555 install -g "$1"
+    echo -n "Installing apk via adb ... "
+    adb -s $3:5555 install -g "$1" 
     
-    echo "Starting tracing ..."
+    echo -n "Tracing ... "
     adb -s $3:5555 shell strace -f -ttt /system/bin/sh /system/bin/monkey -p $PACKNAME -v $2  >$DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata 2>$DESTINATION_DIRECTORY/$2-$LOCALHASH.trace
-    echo "Tracing done"
+    echoColor g "done"
 }
 
 #adds the current apk to the database, using OUTFILENAME
@@ -299,7 +359,6 @@ function addToDatabase()
         REALEVENTSEND=0
     fi
     MONKEYSEED=$(grep -Po ":Monkey: seed=\K[0-9]*?(?=\ )" $DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata)
-    echo "events : $REALEVENTSEND"
     echo "$LOCALHASH;$2;$REALEVENTSEND,$MONKEYSEED;$2-$LOCALHASH;" >> $DESTINATION_DIRECTORY/logsCorrespondance.csv
 }
 

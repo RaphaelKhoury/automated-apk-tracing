@@ -20,11 +20,14 @@ Check the configurations in config.txt, modify as needed.
 
 The expected format of the source directories is important and will break the script if not respected. The source directories should contain subfolders, the name of these subfolders will be the indicated source of the apks. All files in these subfolders will be treated as apks, so don't leave anything else around here.
 Example :
+
     /apks/malware
+
         -> /cicmaldroid/
             -> a.apk
             -> b.apk
             ...
+            
         -> /unspecified/
             -> d.apk 
             ...
