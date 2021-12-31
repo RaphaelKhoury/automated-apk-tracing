@@ -359,7 +359,7 @@ function addToDatabase()
         REALEVENTSEND=0
     fi
     MONKEYSEED=$(grep -Po ":Monkey: seed=\K[0-9]*?(?=\ )" $DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata)
-    echo "$LOCALHASH;$2;$REALEVENTSEND,$MONKEYSEED;$2-$LOCALHASH;" >> $DESTINATION_DIRECTORY/logsCorrespondance.csv
+    echo "$LOCALHASH;$2;$REALEVENTSEND;$MONKEYSEED;$2-$LOCALHASH;" >> $DESTINATION_DIRECTORY/logsCorrespondance.csv
 }
 
 mainBody
