@@ -43,7 +43,7 @@ function echoColor()
 #Input variables for the script, these remain constant through the script execution
 INPUT_SIZES=$(grep -oP '(?<=INPUT_SIZES=).*' config.txt ) 
 echo -n "Tests will be done on input sizes : " 
-echoColor b $INPUT_SIZES 
+echoColor b "$INPUT_SIZES"
 
 SOURCE_DIRECTORY_MALWARE=$(grep -oP '(?<=SOURCE_DIRECTORY_MALWARE=).*' config.txt ) 
 echo -n "Source directory for malware apks : "
@@ -60,6 +60,17 @@ echoColor b $CURATED_APK_DIRECTORY
 DESTINATION_DIRECTORY=$(grep -oP '(?<=DESTINATION_DIRECTORY=).*' config.txt ) 
 echo -n "Destination directory for traces : "
 echoColor b $DESTINATION_DIRECTORY 
+
+REPACKAGED_PAIRS_FILE=$(grep -oP '(?<=REPACKAGED_PAIRS_FILE=).*' config.txt ) 
+echo -n "Source for adding pair comparisons : "
+echoColor b $REPACKAGED_PAIRS_FILE 
+
+if [ ! -f $REPACKAGED_PAIRS_FILE ]
+then
+    echo -n "Source file "
+    echoColor -n y "not found "
+    echo "continuing without checking for repackaging ... "
+fi
 
 #main function body
 function mainBody()
@@ -136,23 +147,54 @@ function extractAPKDataIntoDB()
     #we create a tmp file buffer with the apk dump
     aapt dump badging $1 > $DESTINATION_DIRECTORY/~tmp.dump
 
-    echo -n "$2;" >> $DESTINATION_DIRECTORY/packageInfo.csv
-    echo -n "$3;" >> $DESTINATION_DIRECTORY/packageInfo.csv
+    BUFFSTRING=""
+
+    BUFFSTRING+="$2;"
+    BUFFSTRING+="$3;"
     #we extract the package name
     EXTRACTSTRING=$(grep -Po package:\ "name='\K.*?(?=')" $DESTINATION_DIRECTORY/~tmp.dump)
-    echo -n "$EXTRACTSTRING;" >>  $DESTINATION_DIRECTORY/packageInfo.csv
+    BUFFSTRING+="$EXTRACTSTRING;"
 
     #we extract the sdk version
     EXTRACTSTRING=$(grep -Po "sdkVersion:'\K.*?(?=')" $DESTINATION_DIRECTORY/~tmp.dump)
-    echo -n "$EXTRACTSTRING;" >>  $DESTINATION_DIRECTORY/packageInfo.csv
+    if [ -n "$EXTRACTSTRING" ]
+    then
+        BUFFSTRING+="$EXTRACTSTRING;"
+    else
+        BUFFSTRING+="0;"
+    fi
 
     #we extract the target sdk version
     EXTRACTSTRING=$(grep -Po "targetSdkVersion:'\K.*?(?=')" $DESTINATION_DIRECTORY/~tmp.dump)
-    echo -n "$EXTRACTSTRING;" >>  $DESTINATION_DIRECTORY/packageInfo.csv
+    if [ -n "$EXTRACTSTRING" ]
+    then
+        BUFFSTRING+="$EXTRACTSTRING;"
+    else
+        BUFFSTRING+="0;"
+    fi
 
     #we extract the application label
     EXTRACTSTRING=$(grep -Po "application-label:'\K.*?(?=')" $DESTINATION_DIRECTORY/~tmp.dump)
-    echo -n "$EXTRACTSTRING;" >>  $DESTINATION_DIRECTORY/packageInfo.csv
+    if [ -n "$EXTRACTSTRING" ]
+    then
+        BUFFSTRING+="$EXTRACTSTRING;"
+    else
+        BUFFSTRING+="0;"
+    fi
+
+    #we check wether this is a repackaged apk from the pair table
+    if [ -f $REPACKAGED_PAIRS_FILE ]
+    then
+        EXTRACTSTRING=$(grep -Po "[0-9A-Z]*?(?=,$2)" $REPACKAGED_PAIRS_FILE)
+        if [ -n "$EXTRACTSTRING" ]
+        then
+            BUFFSTRING+="1;$EXTRACTSTRING;"
+        else
+            BUFFSTRING+="0;0;"
+        fi
+    else
+        BUFFSTRING+="0;0;"
+    fi
 
     #we extract all the permissions
     for PERM in $(cat permissions.txt)
@@ -160,9 +202,9 @@ function extractAPKDataIntoDB()
         TMPSTR=$(grep $PERM $DESTINATION_DIRECTORY/~tmp.dump)
         if [ -n "$TMPSTR" ]
         then
-            echo -n "1;" >> $DESTINATION_DIRECTORY/packageInfo.csv
+            BUFFSTRING+="1;"
         else
-            echo -n "0;" >> $DESTINATION_DIRECTORY/packageInfo.csv
+            BUFFSTRING+="0;"
         fi
     done
 
@@ -172,13 +214,14 @@ function extractAPKDataIntoDB()
         TMPSTR=$(grep $PERM $DESTINATION_DIRECTORY/~tmp.dump)
         if [ -n "$TMPSTR" ]
         then
-            echo -n "1;" >> $DESTINATION_DIRECTORY/packageInfo.csv
+            BUFFSTRING+="1;"
         else
-            echo -n "0;" >> $DESTINATION_DIRECTORY/packageInfo.csv
+            BUFFSTRING+="0;"
         fi
     done
 
-    echo "" >> $DESTINATION_DIRECTORY/packageInfo.csv
+
+    echo $BUFFSTRING "" >> $DESTINATION_DIRECTORY/packageInfo.csv
 
     rm $DESTINATION_DIRECTORY/~tmp.dump
 }
@@ -242,7 +285,7 @@ function createDatabaseIfNeeded()
         touch $DESTINATION_DIRECTORY/logsCorrespondance.csv
         echo "sourceFileRelativeToScript;UPI;source;" > $DESTINATION_DIRECTORY/fileCorrespondance.csv
         echo "UPI;monkeyInputSize;eventsActuallySent;monkeySeed;outFilesName;" > $DESTINATION_DIRECTORY/logsCorrespondance.csv
-        echo -n "UPI;malware;packageName;sdkVersion;targetSDKVersion;applicationLabel;" > $DESTINATION_DIRECTORY/packageInfo.csv
+        echo -n "UPI;malware;packageName;sdkVersion;targetSDKVersion;applicationLabel;repackaged;identifiableSource;" > $DESTINATION_DIRECTORY/packageInfo.csv
         while read -r line || [[ -n "$line" ]]; do
             echo -n "$line;" >> $DESTINATION_DIRECTORY/packageInfo.csv
         done < permissions.txt
@@ -364,3 +407,6 @@ function addToDatabase()
 
 mainBody
 
+
+
+grep -Po "[0-9A-Z]*?(?=,TESaT2)" repackTest.txt

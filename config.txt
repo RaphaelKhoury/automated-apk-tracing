@@ -11,3 +11,8 @@ CURATED_APK_DIRECTORY=./curatedApks
 
 #The directory where to dump the log files and the database 
 DESTINATION_DIRECTORY=./logs
+
+#A file containing a table of correspondance between legitimate apks and repackaged ones, it is optional
+#It is expected the following format for each line : legitimateSHA256,repackagedSHA256
+#It is expected that repackaged apks appear only once
+REPACKAGED_PAIRS_FILE=./repackTest.txt

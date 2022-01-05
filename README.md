@@ -34,9 +34,7 @@ Example :
 
 The CURATED_APK_DIRECTORY should be empty when the script is first started. Else you will probalby break the script and lose your data.
 
-The script will pull the image required from the Google repos the first time it is started. Each trace can be quite long. You can stop the script at any moment by CTR-C, you will only loose the current trace. If the script is restarted it will skip all previously done apk.
-
-
+The script will pull the image required from the Google repos the first time it is started. Each trace can be quite long. You can stop the script  with CTR-C, you will only loose the current trace. If you stop the script before the tracing phase (before “… preparing data done”) you should delete the content of the curated apk directory as well as the database files. If the script is restarted it will skip all previously done apk.
 
 Launch the script trace.sh
 
