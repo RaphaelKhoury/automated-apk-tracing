@@ -49,9 +49,9 @@ SOURCE_DIRECTORY_MALWARE=$(grep -oP '(?<=SOURCE_DIRECTORY_MALWARE=).*' config.tx
 echo -n "Source directory for malware apks : "
 echoColor b $SOURCE_DIRECTORY_MALWARE 
 
-SOURCE_DIRECTORY_SANE=$(grep -oP '(?<=SOURCE_DIRECTORY_SANE=).*' config.txt ) 
-echo -n "Source directory for sane apks : "
-echoColor b $SOURCE_DIRECTORY_SANE 
+SOURCE_DIRECTORY_BENIGN=$(grep -oP '(?<=SOURCE_DIRECTORY_BENIGN=).*' config.txt ) 
+echo -n "Source directory for BENIGN apks : "
+echoColor b $SOURCE_DIRECTORY_BENIGN 
 
 CURATED_APK_DIRECTORY=$(grep -oP '(?<=CURATED_APK_DIRECTORY=).*' config.txt ) 
 echo -n "Destination directory for curated apks : "
@@ -94,7 +94,7 @@ function prepareData()
     then
         mkdir $CURATED_APK_DIRECTORY
     fi
-    for LOCALDIR in $SOURCE_DIRECTORY_MALWARE/*/ $SOURCE_DIRECTORY_SANE/*/
+    for LOCALDIR in $SOURCE_DIRECTORY_MALWARE/*/ $SOURCE_DIRECTORY_BENIGN/*/
     do
         [ -d "$LOCALDIR" ] || break #these guards are important in case folders are empty or don't exist
         echo -n "Preparing data in folder "
@@ -113,7 +113,7 @@ function prepareData()
             TMPSTR=$(grep "$HASH;" $DESTINATION_DIRECTORY/packageInfo.csv)
             if [ -z "$TMPSTR" ]
             then
-                TMPSTR=$(echo $LOCALDIR | grep "$SOURCE_DIRECTORY_SANE" )
+                TMPSTR=$(echo $LOCALDIR | grep "$SOURCE_DIRECTORY_BENIGN" )
                 if [ ! -z $TMPSTR ]
                 then
                     extractAPKDataIntoDB $CURATED_APK_DIRECTORY/$HASH.apk $HASH 0
