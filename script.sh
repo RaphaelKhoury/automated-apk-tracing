@@ -69,6 +69,10 @@ TIMEOUT_DELAY=$(grep -oP '(?<=TIMEOUT_DELAY=).*' config.txt )
 echo -n "Maximum time allowed to test an apk : "
 echoColor b $TIMEOUT_DELAY 
 
+STRACE_ARGS=$(grep -oP '(?<=STRACE_ARGS=).*' config.txt ) 
+echo -n "Strace arguments :  "
+echoColor b "$STRACE_ARGS "
+
 if [ ! -f $REPACKAGED_PAIRS_FILE ]
 then
     echo -n "Source file "
@@ -250,7 +254,7 @@ function processData()
             fi
 
             export -f createContainer traceAPK killContainer createContainerAndTrace echoColor
-            export DESTINATION_DIRECTORY APK INPUTNUMBER
+            export DESTINATION_DIRECTORY APK INPUTNUMBER STRACE_ARGS
             timeout --foreground $TIMEOUT_DELAY  bash -c createContainerAndTrace
             TIMEOUTRETURN=$?
 
@@ -390,7 +394,7 @@ function traceAPK()
     adb -s $3:5555 install -g "$1" 
     
     echo -n "Tracing ... "
-    adb -s $3:5555 shell strace -f -ttt /system/bin/sh /system/bin/monkey -p $PACKNAME -v $2  >$DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata 2>$DESTINATION_DIRECTORY/$2-$LOCALHASH.trace
+    adb -s $3:5555 shell strace $STRACE_ARGS /system/bin/sh /system/bin/monkey -p $PACKNAME -v $2  >$DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata 2>$DESTINATION_DIRECTORY/$2-$LOCALHASH.trace
     echoColor g "done"
 }
 
