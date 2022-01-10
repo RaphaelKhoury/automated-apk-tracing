@@ -55,7 +55,7 @@ The actual permissions and features that are checked for are listed in features.
 
 *logsCorrespondance.csv* holds the correspondance between UPI and logs produced.
 The table is as follow
-UPI;monkeyInputSize;eventsActuallySent;monkeySeed;outFilesName
+UPI;monkeyInputSize;eventsActuallySent;timedOut;monkeySeed;outFilesName
 
 The output files will be outFilesName.monkdata and outFilesName.trace.
 The app can crash before all requested input are sent, in this case the eventsActuallySent will be smaller than monkeyInputSize. It is fuzzing after all, and some apps are not robust enough to handle it.

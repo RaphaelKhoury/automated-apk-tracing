@@ -1,9 +1,13 @@
 #The sizes of the random inputs to use in monkey, a list of space-separated numbers
-INPUT_SIZES=200 500
+INPUT_SIZES=500 200 600
+
+#The maximum time we allow for the test of an apk, this is useful to avoid being stuck on unexpected errors
+#See the man of timeout for details on the format
+TIMEOUT_DELAY=5m
 
 #The directory to search for apks, all apks in this directory will be tested
 SOURCE_DIRECTORY_MALWARE=./apks/malware
-SOURCE_DIRECTORY_SANE=./apks/benign
+SOURCE_DIRECTORY_BENIGN=./apks/benign
 
 #The directory that will store the cured apks, it should be empty when the script is first started, otherwise the script might fail and data will be LOST
 #It will be created if non-existent

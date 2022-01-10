@@ -65,6 +65,10 @@ REPACKAGED_PAIRS_FILE=$(grep -oP '(?<=REPACKAGED_PAIRS_FILE=).*' config.txt )
 echo -n "Source for adding pair comparisons : "
 echoColor b $REPACKAGED_PAIRS_FILE 
 
+TIMEOUT_DELAY=$(grep -oP '(?<=TIMEOUT_DELAY=).*' config.txt ) 
+echo -n "Maximum time allowed to test an apk : "
+echoColor b $TIMEOUT_DELAY 
+
 if [ ! -f $REPACKAGED_PAIRS_FILE ]
 then
     echo -n "Source file "
@@ -245,11 +249,12 @@ function processData()
                 continue
             fi
 
-            createContainer
-            
-            traceAPK "$APK" $INPUTNUMBER $CONTAINERIP
+            export -f createContainer traceAPK killContainer createContainerAndTrace echoColor
+            export DESTINATION_DIRECTORY APK INPUTNUMBER
+            timeout --foreground $TIMEOUT_DELAY  bash -c createContainerAndTrace
+            TIMEOUTRETURN=$?
 
-            addToDatabase "$APK" $INPUTNUMBER
+            addToDatabase "$APK" $INPUTNUMBER $TIMEOUTRETURN
 
             docker stop android-container > /dev/null
             docker rm android-container > /dev/null
@@ -284,7 +289,7 @@ function createDatabaseIfNeeded()
         touch $DESTINATION_DIRECTORY/packageInfo.csv
         touch $DESTINATION_DIRECTORY/logsCorrespondance.csv
         echo "sourceFileRelativeToScript;UPI;source;" > $DESTINATION_DIRECTORY/fileCorrespondance.csv
-        echo "UPI;monkeyInputSize;eventsActuallySent;monkeySeed;outFilesName;" > $DESTINATION_DIRECTORY/logsCorrespondance.csv
+        echo "UPI;monkeyInputSize;eventsActuallySent;timedOut;monkeySeed;outFilesName;" > $DESTINATION_DIRECTORY/logsCorrespondance.csv
         echo -n "UPI;malware;packageName;sdkVersion;targetSDKVersion;applicationLabel;repackaged;identifiableSource;" > $DESTINATION_DIRECTORY/packageInfo.csv
         while read -r line || [[ -n "$line" ]]; do
             echo -n "$line;" >> $DESTINATION_DIRECTORY/packageInfo.csv
@@ -330,7 +335,7 @@ function checkFiles()
     LOCALHASH=$(basename $1 .apk)
     #Checks if the apk is in the database, if not we have a problem
     TMPSTR=$(grep $LOCALHASH $DESTINATION_DIRECTORY/packageInfo.csv)
-    if [ -z $TMPSTR ]
+    if [ -z "$TMPSTR" ]
     then
         echo "Error, apk info not found in database for $1"
         return 0
@@ -389,24 +394,48 @@ function traceAPK()
     echoColor g "done"
 }
 
+#a wrapper for the functions createContainer and traceAPK
+#args
+# 1-APK
+# 2-Input size
+function createContainerAndTrace()
+{
+    createContainer
+
+    traceAPK "$APK" $INPUTNUMBER $CONTAINERIP
+
+    return 0
+}
+
 #adds the current apk to the database, using OUTFILENAME
 #args
 # 1-APK
 # 2-Input size
+# 3-timeout return value
 function addToDatabase()
 {
     LOCALHASH=$(basename $1 .apk)
-    REALEVENTSEND=$(grep -Po "Events\ injected:\ \K.*" $DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata)
-    if [ -z $REALEVENTSEND ]
+    MONKEYSEED=0
+    if [ $3 -eq 0 ]
     then 
+        TIMEOUTAPPEND=0
+        if [ ! -f $DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata ]
+        then
+            REALEVENTSEND=0
+            TIMEOUTAPPEND=1
+        else
+            REALEVENTSEND=$(grep -Po "Events\ injected:\ \K.*" $DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata)
+            if [ -z $REALEVENTSEND ]
+            then 
+                REALEVENTSEND=0
+            fi
+            MONKEYSEED=$(grep -Po ":Monkey: seed=\K[0-9]*?(?=\ )" $DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata)
+        fi
+    else
         REALEVENTSEND=0
+        TIMEOUTAPPEND=1
     fi
-    MONKEYSEED=$(grep -Po ":Monkey: seed=\K[0-9]*?(?=\ )" $DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata)
-    echo "$LOCALHASH;$2;$REALEVENTSEND;$MONKEYSEED;$2-$LOCALHASH;" >> $DESTINATION_DIRECTORY/logsCorrespondance.csv
+    echo "$LOCALHASH;$2;$REALEVENTSEND;$TIMEOUTAPPEND;$MONKEYSEED;$2-$LOCALHASH;" >> $DESTINATION_DIRECTORY/logsCorrespondance.csv
 }
 
 mainBody
-
-
-
-grep -Po "[0-9A-Z]*?(?=,TESaT2)" repackTest.txt
