@@ -1,5 +1,5 @@
 #The sizes of the random inputs to use in monkey, a list of space-separated numbers
-INPUT_SIZES=500 200 600
+INPUT_SIZES=500 200 600 #or more
 
 #The maximum time we allow for the test of an apk, this is useful to avoid being stuck on unexpected errors
 #See the man of timeout for details on the format
