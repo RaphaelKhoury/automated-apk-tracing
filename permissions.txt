@@ -1,3 +1,8 @@
+android.permission.CHANGE_WIMAX_STATE
+com.android.providers.im.permission.READ_ONLY
+android.permission.ADD_SYSTEM_SERVICE
+android.permission.INSTALL_DRM
+com.android.email.permission.READ_ATTACHMENT
 com.google.android.gms.permission.CAR_VENDOR_EXTENSION
 com.google.android.gms.permission.CAR_MILEAGE
 com.google.android.gms.permission.CAR_FUEL
