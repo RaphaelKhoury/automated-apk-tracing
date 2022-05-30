@@ -4,7 +4,6 @@ android.hardware.audio.pro
 android.hardware.microphone
 android.hardware.bluetooth
 android.hardware.bluetooth_le
-android.hardware.camera
 android.hardware.camera.any
 android.hardware.camera.autofocus
 android.hardware.camera.capability.manual_post_processing
@@ -20,10 +19,8 @@ android.hardware.type.watch
 android.hardware.fingerprint
 android.hardware.gamepad
 android.hardware.consumerir
-android.hardware.location
 android.hardware.location.gps
 android.hardware.location.network
-android.hardware.nfc
 android.hardware.nfc.hce
 android.hardware.opengles.aep
 android.hardware.sensor.accelerometer
@@ -41,13 +38,10 @@ android.hardware.sensor.stepcounter
 android.hardware.sensor.stepdetector
 android.hardware.screen.landscape
 android.hardware.screen.portrait
-android.hardware.telephony
 android.hardware.telephony.cdma
 android.hardware.telephony.gsm
-android.hardware.faketouch
 android.hardware.faketouch.multitouch.distinct
 android.hardware.faketouch.multitouch.jazzhand
-android.hardware.touchscreen
 android.hardware.touchscreen.multitouch
 android.hardware.touchscreen.multitouch.distinct
 android.hardware.touchscreen.multitouch.jazzhand
@@ -56,9 +50,7 @@ android.hardware.usb.host
 android.hardware.vulkan.compute
 android.hardware.vulkan.level
 android.hardware.vulkan.version
-android.hardware.wifi
 android.hardware.wifi.direct
-android.software.sip
 android.software.sip.voip
 android.software.webview
 android.software.input_methods
