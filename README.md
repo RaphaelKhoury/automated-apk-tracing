@@ -10,7 +10,9 @@ The script will generate a database of the apk details as well as traces log fil
 
 This script requires docker to be properly installed (it should run WITHOUT sudo).
 
-The android debug bridge (adb) package is also required.
+The android debug bridge (adb) and the aapt packages are also required.
+
+The test input generator "droidbot" from honeynet's github and the debug tool "strace" are needed.
 
 # Usage
 
@@ -32,7 +34,7 @@ Example :
             -> d.apk 
             ...
 
-The CURATED_APK_DIRECTORY should be empty when the script is first started. Else you will probalby break the script and lose your data.
+The CURATED_APK_DIRECTORY should be empty when the script is first started. Else you will probalby break the script and lose your data. Emptying the logs directory is suggested. 
 
 The script will pull the image required from the Google repos the first time it is started. Each trace can be quite long. You can stop the script  with CTR-C, you will only loose the current trace. If you stop the script before the tracing phase (before “… preparing data done”) you should delete the content of the curated apk directory as well as the database files. If the script is restarted it will skip all previously done apk.
 
