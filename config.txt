@@ -1,5 +1,8 @@
+#The input generator that will be used. 1 for Monkey, 2 for DroidBot
+TOOL_CHOICE=2
+
 #The sizes of the random inputs to use in monkey, a list of space-separated numbers
-INPUT_SIZES=500 200 600 #or more
+INPUT_SIZES=3
 
 #The maximum time we allow for the test of an apk, this is useful to avoid being stuck on unexpected errors
 #See the man of timeout for details on the format
