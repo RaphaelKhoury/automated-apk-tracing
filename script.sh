@@ -37,8 +37,9 @@ function echoColor()
             echo $OPTIONFLAG -e $yellow$2$reset
         ;;
     esac
-
 }
+
+TOOL_CHOICE=$(grep -oP '(?<=TOOL_CHOICE=).*' config.txt ) 
 
 #Input variables for the script, these remain constant through the script execution
 INPUT_SIZES=$(grep -oP '(?<=INPUT_SIZES=).*' config.txt ) 
@@ -73,6 +74,7 @@ STRACE_ARGS=$(grep -oP '(?<=STRACE_ARGS=).*' config.txt )
 echo -n "Strace arguments :  "
 echoColor b "$STRACE_ARGS "
 
+
 if [ ! -f $REPACKAGED_PAIRS_FILE ]
 then
     echo -n "Source file "
@@ -83,6 +85,7 @@ fi
 #main function body
 function mainBody()
 {
+	
     prepareData
 
     processData
@@ -249,17 +252,21 @@ function processData()
             echo -n "Test $INPUTNUMBER ... "
             if checkFiles "$APK" $INPUTNUMBER
             then
+            	echo "l. 253"
                 echoColor y skipped
                 continue
             fi
-
+	
+		echo "l. 258"
             export -f createContainer traceAPK killContainer createContainerAndTrace echoColor
+            echo "l. 260"
             export DESTINATION_DIRECTORY APK INPUTNUMBER STRACE_ARGS
+            echo "l.262"
             timeout --foreground $TIMEOUT_DELAY  bash -c createContainerAndTrace
+            echo "l. 264"
             TIMEOUTRETURN=$?
 
             addToDatabase "$APK" $INPUTNUMBER $TIMEOUTRETURN
-
             docker stop android-container > /dev/null
             docker rm android-container > /dev/null
 
@@ -312,6 +319,7 @@ function killContainer()
     echo
     DOCKSTATUS=$(docker ps | grep "android-container")
     if [ -z "$DOCKSTATUS" ]
+
     then
         DOCKSTATUS=$(docker ps -a | grep "android-container")
         if [ ! -z "$DOCKSTATUS" ]
@@ -359,7 +367,6 @@ function checkFiles()
 function createContainer()
 {
     killContainer
-    
     docker run -d \
         -e ADBKEY="$(cat ~/.android/adbkey)" \
         --device /dev/kvm \
@@ -367,7 +374,6 @@ function createContainer()
         --publish 5555:5555/tcp  \
         --name android-container \
         us-docker.pkg.dev/android-emulator-268719/images/30-google-x64:30.1.2 > /dev/null
-    
     CONTAINERIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' android-container)
     sleep 5
     adb connect $CONTAINERIP:5555 > /dev/null
@@ -380,12 +386,26 @@ function createContainer()
     done
 }
 
-#Traces the apk proper
+function traceAPK()
+{
+    if [ "$TOOL_CHOICE" = 1 ]
+    then
+        echo "You chose to continue with Monkey"
+    	traceAPKMonkey $1 $2 $3
+    elif [ "$TOOL_CHOICE" = 2 ]
+    then
+    	echo "You chose to continue with DroidBot"
+    	traceAPKDroidbot $1 $2 $3
+    else 
+    	echoColor r "erreur sur le choix de l'outil"
+    fi
+}
+
 #args :
 # 1 - apk to trace
-# 2 - input size to use
+# 2 - input events to do
 # 3 - IP of the container
-function traceAPK()
+function traceAPKMonkey()
 {
     LOCALHASH=$(basename $1 .apk)
     PACKNAME=$(aapt dump badging "$1" | grep -Po package:\ "name='\K.*?(?=')")
@@ -397,6 +417,26 @@ function traceAPK()
     adb -s $3:5555 shell strace $STRACE_ARGS /system/bin/sh /system/bin/monkey -p $PACKNAME -v $2  >$DESTINATION_DIRECTORY/$2-$LOCALHASH.monkdata 2>$DESTINATION_DIRECTORY/$2-$LOCALHASH.trace
     echoColor g "done"
 }
+
+#args :
+# 1 - apk to trace
+# 2 - input events to do
+# 3 - IP of the container
+function traceAPKDroidbot()
+{
+	echo -n "Preparing trace with droidbot..."
+	sudo droidbot -a $1 -d $3:5555 -o output_dir -count $2 -keep_env -is_emulator
+	moveOutput
+	echocolor g "done"
+}
+
+function moveOutput()
+{
+	to_move=./output_dir/logcat.txt
+	mv to_move $DESTINATION_DIRECTORY
+	sudo rm -r ./output_dir/
+}
+
 
 #a wrapper for the functions createContainer and traceAPK
 #args
